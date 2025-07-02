@@ -260,6 +260,8 @@ def analisar_arquivos():
     comparativo = comparativo.merge(pedidos_agrupados, on='MELI', how='left')
     comparativo = comparativo.sort_values('Disponibilidade', ascending=True).reset_index(drop=True)
 
+    comparativo = comparativo[comparativo['Disponibilidade'] == 'Insuficiente']
+
     comparativo.to_csv("comparativo.csv", index=False)
 
     comparativo = pd.read_csv("comparativo.csv")
