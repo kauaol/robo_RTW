@@ -23,26 +23,22 @@ def login(driver, url, usuario, senha):
     driver.get(url)
     try:
         username_field = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, "input27"))
+            EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/main/div[2]/div/div/div[2]/form/div[1]/div[3]/div[2]/div[2]/span/input'))
         )
-        username_field.clear()
+
         username_field.send_keys(usuario)
 
         botao = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, '//*[@id="form19"]/div[2]/input'))
+            EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/main/div[2]/div/div/div[2]/form/div[2]/input'))
         )
         botao.click()
 
         botaoSenha = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.ID, 'input61'))
+            EC.element_to_be_clickable((By.XPATH, '/html/body/div[2]/main/div[2]/div/div/div[2]/form/div[1]/div[4]/div/div[2]/span/input'))
         )
         botaoSenha.clear()
         botaoSenha.send_keys(senha)
         botaoSenha.send_keys(Keys.RETURN)
-
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, 'andes-table__body'))
-        )
 
         print("Login realizado com sucesso!")
 
@@ -279,55 +275,12 @@ if __name__ == "__main__":
 
     usuario = input(f"{Fore.GREEN}Digite seu usuário: {Style.RESET_ALL}")
     senha = input(f"{Fore.GREEN}Digite sua senha: {Style.RESET_ALL}")
-    hora_sla = input(f"{Fore.GREEN}Digite o ETD a ser analisado no formato (00:00:00): {Style.RESET_ALL}")
-    data_atual = input(f"{Fore.GREEN}Digite a data no formato (yyyy-mm-dd): {Style.RESET_ALL}")
-
-    print(f"\n{Fore.CYAN}{Style.BRIGHT}-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
-    print(f"{Fore.YELLOW}{Style.BRIGHT}ESCOLHA O PROCESS PATH")
-    print(f"{Fore.CYAN}{Style.BRIGHT}-=-=-=-=-=-=-=-=-=-=-=-=-=-=-={Style.RESET_ALL}")
-
-    print(f"{Fore.BLUE}0 - {Fore.WHITE}TODOS")
-    print(f"{Fore.BLUE}1 - {Fore.WHITE}NON TOTABLE MULTI ORDER")
-    print(f"{Fore.BLUE}2 - {Fore.WHITE}TOTABLE MONO")
-    print(f"{Fore.BLUE}3 - {Fore.WHITE}NON TOTABLE SINGLE SKU")
-    print(f"{Fore.BLUE}4 - {Fore.WHITE}TOTABLE MULTI BATCH")
-    print(f"{Fore.BLUE}5 - {Fore.WHITE}NON TOTABLE MONO")
-    print(f"{Fore.BLUE}6 - {Fore.WHITE}TOTABLE SINGLE SKU")
-
-    escolha = input(f"\n{Fore.GREEN}Digite o número correspondente: {Style.RESET_ALL}")
-
-    analise = ""
-    process_path = ""
-
-    if escolha == "0":
-        analise = "1"
-    elif escolha == "1":
-        analise = "2"
-        process_path = "NON_TOT_MULTI_ORDER"
-    elif escolha == "2":
-        analise = "2"
-        process_path = "TOT_MONO"
-    elif escolha == "3":
-        analise = "2"
-        process_path = "NON_TOT_SINGLE_SKU"
-    elif escolha == "4":
-        analise = "2"
-        process_path = "TOT_MULTI_BATCH"
-    elif escolha == "5":
-        analise = "2"
-        process_path = "NON_TOT_MONO"
-    elif escolha == "6":
-        analise = "2"
-        process_path = "TOT_SINGLE_SKU"
-    else:
-        print("Opção inválida. Encerrando o programa.")
-        exit()
 
     # Configurações do Chrome
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--log-level=3")
-    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -340,33 +293,86 @@ if __name__ == "__main__":
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
     try:
-        if analise == "1":
-            url_inicial = (
-                f"https://wms.adminml.com/reports/units/orders?"
-                f"std_from={data_atual}T{hora_sla}&std_to={data_atual}T{hora_sla}"
-                f"&group_type=order&unit_status=pending,temp_unavailable"
-            )
-        else:
-            url_inicial = (
-                f"https://wms.adminml.com/reports/units/orders?"
-                f"process_path={process_path}&std_from={data_atual}T{hora_sla}&std_to={data_atual}T{hora_sla}"
-                f"&group_type=order&unit_status=pending,temp_unavailable"
-            )
+        # Faz login só uma vez
+        print("iniciando login")
+        login(driver, "https://wms.adminml.com/", usuario, senha)
 
-        # Execução principal
-        login(driver, url_inicial, usuario, senha)
-        df_pedidos = extrair_pedidos(driver)
-        primeiros_ids = df_pedidos["ID"].dropna().unique().tolist()
-        processar_pedidos(driver, primeiros_ids)
-        processar_melis(driver)
-        print("Processando arquivos")
-        analisar_arquivos()
+        while True:
+            hora_sla = input(f"\n{Fore.GREEN}Digite o ETD (00:00:00): {Style.RESET_ALL}")
+            data_atual = input(f"{Fore.GREEN}Digite a data (yyyy-mm-dd): {Style.RESET_ALL}")
 
-        print("Arquivos gerados com sucesso, e salvos ")
+            print(f"\n{Fore.CYAN}{Style.BRIGHT}-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=")
+            print(f"{Fore.YELLOW}{Style.BRIGHT}ESCOLHA O PROCESS PATH")
+            print(f"{Fore.CYAN}{Style.BRIGHT}-=-=-=-=-=-=-=-=-=-=-=-=-=-=-={Style.RESET_ALL}")
+
+            print(f"{Fore.BLUE}0 - {Fore.WHITE}TODOS")
+            print(f"{Fore.BLUE}1 - {Fore.WHITE}NON TOTABLE MULTI ORDER")
+            print(f"{Fore.BLUE}2 - {Fore.WHITE}TOTABLE MONO")
+            print(f"{Fore.BLUE}3 - {Fore.WHITE}NON TOTABLE SINGLE SKU")
+            print(f"{Fore.BLUE}4 - {Fore.WHITE}TOTABLE MULTI BATCH")
+            print(f"{Fore.BLUE}5 - {Fore.WHITE}NON TOTABLE MONO")
+            print(f"{Fore.BLUE}6 - {Fore.WHITE}TOTABLE SINGLE SKU")
+
+            escolha = input(f"\n{Fore.GREEN}Digite o número correspondente: {Style.RESET_ALL}")
+
+            analise = ""
+            process_path = ""
+
+            if escolha == "0":
+                analise = "1"
+            elif escolha == "1":
+                analise = "2"
+                process_path = "NON_TOT_MULTI_ORDER"
+            elif escolha == "2":
+                analise = "2"
+                process_path = "TOT_MONO"
+            elif escolha == "3":
+                analise = "2"
+                process_path = "NON_TOT_SINGLE_SKU"
+            elif escolha == "4":
+                analise = "2"
+                process_path = "TOT_MULTI_BATCH"
+            elif escolha == "5":
+                analise = "2"
+                process_path = "NON_TOT_MONO"
+            elif escolha == "6":
+                analise = "2"
+                process_path = "TOT_SINGLE_SKU"
+            else:
+                print("Opção inválida. Pulando essa rodada.")
+                continue
+
+            if analise == "1":
+                url = (
+                    f"https://wms.adminml.com/reports/units/orders?"
+                    f"std_from={data_atual}T{hora_sla}&std_to={data_atual}T{hora_sla}"
+                    f"&group_type=order&unit_status=pending,temp_unavailable"
+                )
+            else:
+                url = (
+                    f"https://wms.adminml.com/reports/units/orders?"
+                    f"process_path={process_path}&std_from={data_atual}T{hora_sla}&std_to={data_atual}T{hora_sla}"
+                    f"&group_type=order&unit_status=pending,temp_unavailable"
+                )
+
+            # Execução para o loop atual
+            driver.get(url)
+            df_pedidos = extrair_pedidos(driver)
+            primeiros_ids = df_pedidos["ID"].dropna().unique().tolist()
+            processar_pedidos(driver, primeiros_ids)
+            processar_melis(driver)
+            analisar_arquivos()
+
+            print(f"\n{Fore.GREEN}Arquivos processados com sucesso!")
+
+            continuar = input(f"\n{Fore.YELLOW}Deseja fazer outra consulta? (s/n): {Style.RESET_ALL}")
+            if continuar.lower() != "s":
+                break
 
     except Exception as e:
-        print(f"Erro durante a execução: {e}")
+        print(f"{Fore.RED}Erro durante a execução: {e}")
 
     finally:
         driver.quit()
+
 
